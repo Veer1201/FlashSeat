@@ -4,9 +4,9 @@ const app = express();
 
 const PORT = 3000;
 
-app.get('/', (res, req) => {
-    res.send("Welcome to FlashSeat API!, Server is running");
-})
+app.get('/', (req, res) => {
+    res.send('Welcome to FlashSeat API!, Server is running');
+});
 
 app.get('/status', (req, res) => {
     res.json({message: 'System is operational', time: new Date()});
