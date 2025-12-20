@@ -8,6 +8,9 @@ const app = express(); // Instantiate an object named app of type express
 
 const PORT = 3000;
 
+app.use(express.json()); //intercepts every request and 
+            //checks if it containd JSON data and them parses into new JavaScript object req.body
+
 // When a user visits on the page
 // req = gets data from user
 // res = sends data back to user
@@ -16,9 +19,25 @@ app.get('/', (req, res) => {
 });
 
 
-//an endpoint at localhost://3000/status
+//an GET endpoint at localhost://3000/status
 app.get('/status', (req, res) => {
     res.json({message: 'System is operational', time: new Date()});
+})
+
+app.post('/register', async (req, res) => {
+    try {
+        const {email, phone_number, password_hash} = req.body;
+        const newEntry = await pool.query(
+            "INSERT INTO flashseat_data (email, phone, pass_hash) VALUES ($1, $2, $3) RETURNING *",
+            [email, phone_number, password_hash]
+        );
+
+        res.json(newEntry.rows[0]);
+
+    } catch (err) {
+        console.error(err.message);
+        res.status(500).send("Internal Server Error");
+    }
 });
 
 // Testing the connection with Database
