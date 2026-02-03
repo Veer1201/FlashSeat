@@ -1,28 +1,14 @@
 const express = require('express'); // Imports express library
-const { createClient } = require('redis');
 
 const app = express(); // Instantiate an object named app of type express
+
 app.use(express.json()); //intercepts every request and 
 //checks if it containd JSON data and them parses into new JavaScript object req.body
 
-const redisClient = createClient();
+const pool = require('./config/db');
 
-// 2. Handle Errors (This MUST be before connect)
-redisClient.on('error', (err) => console.log('Redis Client Error', err));
-
-// 3. Connect (Async)
-(async () => {
-    try {
-        await redisClient.connect();
-        console.log("✅ Connected to Redis successfully!");
-    } catch (err) {
-        console.error("❌ Redis Connection Error:", err);
-    }
-})();
-
-const { Pool } = require('pg'); // Imports postgresql
-
-const pool = require('./db');
+const {client: redisClient, connectRedis} = require('./config/redis');
+connectRedis();
 
 const PORT = 3000;
 
@@ -71,46 +57,12 @@ app.get('/events/:id/seats', async(req, res) => {
     }
 })
 
-//POST Endpoint to book the seats
-app.post('/seats/book', async (req, res) => {
-    try {
-        const { seatId, userId } = req.body;
+// Import the routes
+const seatRoutes = require('./routes/seatRoutes');
 
-        // DEBUG 1: Did the inputs arrive?
-        console.log("------------------------------------------------");
-        console.log("1. Incoming Request Body:", req.body); 
-        console.log(`2. Inputs detected -> Seat: ${seatId}, User: ${userId}`);
-
-        // DEBUG 2: What is the ACTUAL status in the database right now?
-        const check = await pool.query("SELECT * FROM seats WHERE seat_id = $1", [seatId]);
-        
-        if (check.rows.length === 0) {
-            console.log("3. CRITICAL: Seat ID does not exist in DB!");
-        } else {
-            console.log("3. Database Status:", check.rows[0].status);
-            console.log("4. Database Owner:", check.rows[0].user_id);
-        }
-
-        // The Actual Update Attempt
-        const result = await pool.query(
-            "UPDATE seats SET status = 'held', user_id = $1 WHERE seat_id = $2 AND status = 'available'", 
-            [userId, seatId]
-        );
-
-        console.log("5. Rows Updated:", result.rowCount);
-        console.log("------------------------------------------------");
-
-        if (result.rowCount === 1) {
-            await redisClient.setEx("seat_hold:" + seatId, 30, userId.toString());
-            res.status(200).send("OK");
-        } else {
-            res.status(409).send("Seat not available");
-        }
-    } catch (err) {
-        console.error(err);
-        res.status(500).send("Server Error");
-    }
-});
+// Tell Express to use them
+// This means any URL starting with /seats will go to seatRoutes
+app.use('/seats', seatRoutes);
 
 // Testing the connection with Database
 pool.query('SELECT NOW()', (err, res) => {
