@@ -1,13 +1,13 @@
 require('dotenv').config()
 
 const express = require('express'); // Imports express library
-
 const app = express(); // Instantiate an object named app of type express
+const pool = require('./config/db');
+const seatRoutes = require('./routes/seatRoutes');
+const userRoutes = require('./routes/userRoutes');
 
 app.use(express.json()); //intercepts every request and 
 //checks if it containd JSON data and them parses into new JavaScript object req.body
-
-const pool = require('./config/db');
 
 const {client: redisClient, connectRedis} = require('./config/redis');
 connectRedis();
@@ -27,22 +27,6 @@ app.get('/status', (req, res) => {
     res.json({message: 'System is operational', time: new Date()});
 })
 
-app.post('/register', async (req, res) => {
-    try {
-        const {email, phone_number, password_hash} = req.body;
-        const newEntry = await pool.query(
-            "INSERT INTO flashseat_data (email, phone, pass_hash) VALUES ($1, $2, $3) RETURNING *",
-            [email, phone_number, password_hash]
-        );
-
-        res.json(newEntry.rows[0]);
-
-    } catch (err) {
-        console.error(err.message);
-        res.status(500).send("Internal Server Error");
-    }
-});
-
 //GET Endpoint for displaying seats to user
 // :id - express extracts the id variable(denoted by :) to check for which event you want to display seats
 app.get('/events/:id/seats', async(req, res) => {
@@ -60,11 +44,12 @@ app.get('/events/:id/seats', async(req, res) => {
 })
 
 // Import the routes
-const seatRoutes = require('./routes/seatRoutes');
+
 
 // Tell Express to use them
 // This means any URL starting with /seats will go to seatRoutes
 app.use('/seats', seatRoutes);
+app.use('/user', userRoutes);
 
 // Testing the connection with Database
 pool.query('SELECT NOW()', (err, res) => {
