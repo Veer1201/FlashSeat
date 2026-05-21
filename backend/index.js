@@ -1,3 +1,5 @@
+require('dotenv').config()
+
 const express = require('express'); // Imports express library
 
 const app = express(); // Instantiate an object named app of type express

@@ -31,18 +31,18 @@ const bookSeat = async (req, res) => {
 
         if (result.rowCount === 1) {
             await redisClient.setEx("seat_hold:" + seatId, 30, userId.toString());
-            res.status(200).send("OK");
+            return res.status(200).send("OK");
         } else {
             const currentSeat = await pool.query("SELECT status from seats WHERE seat_id = $1 ", [seatId]);
 
             // Seat does not exist
             if (currentSeat.rows.length === 0) {
-                res.status(404).send("invalid seat ID");
+                return res.status(404).send("invalid seat ID");
             }            
 
             const status = currentSeat.rows[0].status;
             if (status === 'sold') {
-                res.status(409).send("Ticket is sold already");
+                return res.status(409).send("Ticket is sold already");
             }
             if (status === 'held') {
                 const holder = await redisClient.GET("seat_hold:" + seatId);
@@ -75,12 +75,12 @@ const payForSeat = async (req, res) => {
         const {seatId, userId} = req.body;
         const holder = await redisClient.GET("seat_hold:" + seatId);
         if (!holder || holder !== userId.toString()) {
-            res.status(409).send("Reservation Expired");
+            return res.status(409).send("Reservation Expired");
         }
 
         const updateSeat = await pool.query("UPDATE seats SET status = 'sold', user_id = $1 WHERE seat_id = $2 AND status = 'held'", [userId, seatId]);
         if (updateSeat.rowCount === 0) {
-            res.status(500).send("Database Error: seat state mismatch");
+            return res.status(500).send("Database Error: seat state mismatch");
         }
 
         await redisClient.DEL("seat_hold:" + seatId);
