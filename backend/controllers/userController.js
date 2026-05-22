@@ -39,6 +39,10 @@ const userLogin = async (req, res) => {
     try {
         const {email, password} = req.body
 
+        if (!email?.trim() || !password?.trim()) {
+            return res.status(400).send("All fields are required!")
+        }
+
         //Scenario: Does User Exists ?
         const User = await pool.query("SELECT * FROM flashseat_data WHERE email = $1", [email])
         if (User.rows.length === 0) {

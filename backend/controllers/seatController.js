@@ -7,6 +7,10 @@ const bookSeat = async (req, res) => {
         const {seatId} = req.body;
         const userId = req.user.id
 
+        if (!seatId) {
+            return res.status(400).send("Select a seat before proceeding")
+        }
+
         console.log("------------------------------------------------");
         console.log("1. Incoming Request Body:", req.body); 
         console.log(`2. Inputs detected -> Seat: ${seatId}, User: ${userId}`);
@@ -75,6 +79,11 @@ const payForSeat = async (req, res) => {
     try {
         const {seatId} = req.body;
         const userId = req.user.id
+        
+        if (!seatId) {
+            return res.status(400).send("Select a seat before proceeding")
+        }
+
         const holder = await redisClient.GET("seat_hold:" + seatId);
         if (!holder || holder !== userId.toString()) {
             return res.status(409).send("Reservation Expired");
