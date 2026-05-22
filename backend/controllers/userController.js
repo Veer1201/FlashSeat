@@ -1,5 +1,6 @@
 const pool = require('../config/db')
 const bcrypt = require('bcrypt')
+const jwt = require('jsonwebtoken')
 
 const saltRounds = 10
 
@@ -38,19 +39,21 @@ const userLogin = async (req, res) => {
     try {
         const {email, password} = req.body
 
-        //Scenario: User Already Exists
+        //Scenario: Does User Exists ?
         const User = await pool.query("SELECT * FROM flashseat_data WHERE email = $1", [email])
         if (User.rows.length === 0) {
             return res.status(401).send("Invalid email or password")
         }
         else {
             const hash = User.rows[0].pass_hash
+            const id = User.rows[0].id
             const compare = await bcrypt.compare(password, hash)
             
             if (!compare) {
                 return res.status(401).send("Invalid email or password")
             }
-            res.status(200).send("login successful!")
+            const token = jwt.sign({id}, process.env.JWT_SECRET, {expiresIn: '2h'})
+            res.status(200).send({message: "Login Successfull!", token})
         }
 
     }
