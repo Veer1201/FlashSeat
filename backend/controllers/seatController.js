@@ -4,7 +4,8 @@ const { client: redisClient } = require('../config/redis');
 // 1. The Logic for Booking (The "Zombie" logic goes here)
 const bookSeat = async (req, res) => {
     try {
-        const { seatId, userId } = req.body;
+        const {seatId} = req.body;
+        const userId = req.user.id
 
         console.log("------------------------------------------------");
         console.log("1. Incoming Request Body:", req.body); 
@@ -72,7 +73,8 @@ const bookSeat = async (req, res) => {
 // 2. The Logic for Paying
 const payForSeat = async (req, res) => {
     try {
-        const {seatId, userId} = req.body;
+        const {seatId} = req.body;
+        const userId = req.user.id
         const holder = await redisClient.GET("seat_hold:" + seatId);
         if (!holder || holder !== userId.toString()) {
             return res.status(409).send("Reservation Expired");
