@@ -5,11 +5,13 @@ const app = express(); // Instantiate an object named app of type express
 const pool = require('./config/db');
 const seatRoutes = require('./routes/seatRoutes');
 const userRoutes = require('./routes/userRoutes');
+const errorRoute = require('./middleware/errorHandler')
 
 app.use(express.json()); //intercepts every request and 
 //checks if it containd JSON data and them parses into new JavaScript object req.body
 
 const {client: redisClient, connectRedis} = require('./config/redis');
+const { sendSuccess } = require('./utils/responseHelper');
 connectRedis();
 
 const PORT = 3000;
@@ -29,17 +31,16 @@ app.get('/status', (req, res) => {
 
 //GET Endpoint for displaying seats to user
 // :id - express extracts the id variable(denoted by :) to check for which event you want to display seats
-app.get('/events/:id/seats', async(req, res) => {
+app.get('/events/:id/seats', async(req, res, next) => {
     try {
         const eventId = req.params.id;  //Express extracts the id variable into req object
         const result = await pool.query(
             "SELECT * FROM seats WHERE event_id = $1 ORDER BY(row_number, seat_number)", [eventId]
         );
-        res.json(result.rows);  //send back the user list of seats as arrays
+        return sendSuccess(res, 200, result.rows)
     }
     catch (err) {
-        console.error(err);
-        res.status(500).send("Internal Server Error");
+        next(err)
     }
 })
 
@@ -50,6 +51,7 @@ app.get('/events/:id/seats', async(req, res) => {
 // This means any URL starting with /seats will go to seatRoutes
 app.use('/seats', seatRoutes);
 app.use('/user', userRoutes);
+app.use(errorRoute)
 
 // Testing the connection with Database
 pool.query('SELECT NOW()', (err, res) => {
@@ -63,5 +65,5 @@ pool.query('SELECT NOW()', (err, res) => {
 
 //server listening at port 3000
 app.listen(PORT, () => {
-    console.log('Server is running on http://localhost:' `${PORT}`); 
+    console.log(`Server is running on http://localhost: ${PORT}`); 
 });

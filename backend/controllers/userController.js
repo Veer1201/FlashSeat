@@ -1,22 +1,23 @@
 const pool = require('../config/db')
 const bcrypt = require('bcrypt')
 const jwt = require('jsonwebtoken')
+const { sendError, sendSuccess } = require('../utils/responseHelper')
 
 const saltRounds = 10
 
 // User Registration
-const registerUser = async (req, res) => {
+const registerUser = async (req, res, next) => {
     try {
         const {email, phone_number, password} = req.body;
 
         if (!email?.trim() || !phone_number?.trim() || !password?.trim()) {
-            return res.status(400).send("All fields are required!")
+            return sendError(res, 400, "All fields are required!")
         }
         // Scenario: User Already Exists
         const duplicateUser = await pool.query("SELECT * FROM flashseat_data WHERE email = $1", [email])
 
         if (duplicateUser.rows.length > 0) {
-            return res.status(409).send("Account already exists. Please log in")
+            return sendError(res, 409, "Account already exists. Please log in")
         }
 
         // Generating a password hash
@@ -26,27 +27,27 @@ const registerUser = async (req, res) => {
             [email, phone_number, password_hash]
         );
 
-        res.json(newEntry.rows[0]);
+        const {id, email: userEmail} = newEntry.rows[0]
+        sendSuccess(res, 201, {id, userEmail})
 
     } catch (err) {
-        console.error(err);
-        res.status(500).send("Internal Server Error")
+        next(err)
     }
 }
 
 // User Login
-const userLogin = async (req, res) => {
+const userLogin = async (req, res, next) => {
     try {
         const {email, password} = req.body
 
         if (!email?.trim() || !password?.trim()) {
-            return res.status(400).send("All fields are required!")
+            return sendError(res, 400, "All fields are required!")
         }
 
         //Scenario: Does User Exists ?
         const User = await pool.query("SELECT * FROM flashseat_data WHERE email = $1", [email])
         if (User.rows.length === 0) {
-            return res.status(401).send("Invalid email or password")
+            return sendError(res, 401, "Invalid email or password")
         }
         else {
             const hash = User.rows[0].pass_hash
@@ -54,16 +55,15 @@ const userLogin = async (req, res) => {
             const compare = await bcrypt.compare(password, hash)
             
             if (!compare) {
-                return res.status(401).send("Invalid email or password")
+                return sendError(res, 401, "Invalid email or password")
             }
             const token = jwt.sign({id}, process.env.JWT_SECRET, {expiresIn: '2h'})
-            res.status(200).send({message: "Login Successfull!", token})
+            sendSuccess(res, 200, {message: "Login Successfull!", token})
         }
 
     }
     catch(err){
-        console.error(err)
-        res.status(500).send("Internal Server Error")
+        next(err)
     }
 }
 
