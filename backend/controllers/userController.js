@@ -17,7 +17,7 @@ const registerUser = async (req, res, next) => {
         const duplicateUser = await pool.query("SELECT * FROM flashseat_data WHERE email = $1", [email])
 
         if (duplicateUser.rows.length > 0) {
-            return sendError(res, 409, "Account already exists. Please log in")
+            return sendError(res, 409, "Account already exists. Please log in.")
         }
 
         // Generating a password hash
