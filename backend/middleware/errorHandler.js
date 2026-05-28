@@ -1,16 +1,15 @@
-const { sendError } = require("../utils/responseHelper")
-
 const errorHandler = (err, req, res, next) => {
     console.error(err.stack)
+
+    const statusCode = err.statusCode || 500
+    const status = err.status || 'error'
+
     if (process.env.NODE_ENV === 'development') {
-        sendError(res, 500, err.message)
+        res.status(statusCode).json({ status, message: err.message, stack: err.stack })
     }
     else { 
-        const msg = "Internal Server error"
-        sendError(res, 500, msg)
+        res.status(statusCode).json({ status, message: err.message })
     }
-    
-    
 }
 
 module.exports = errorHandler
