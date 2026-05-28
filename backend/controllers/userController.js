@@ -1,7 +1,8 @@
 const pool = require('../config/db')
 const bcrypt = require('bcrypt')
 const jwt = require('jsonwebtoken')
-const { sendError, sendSuccess } = require('../utils/responseHelper')
+const {sendSuccess } = require('../utils/responseHelper')
+const { AppError } = require('../utils/AppError')
 
 const saltRounds = 10
 
@@ -11,13 +12,13 @@ const registerUser = async (req, res, next) => {
         const {email, phone_number, password} = req.body;
 
         if (!email?.trim() || !phone_number?.trim() || !password?.trim()) {
-            return sendError(res, 400, "All fields are required!")
+            return next(new AppError("All fields are required!", 400))
         }
         // Scenario: User Already Exists
         const duplicateUser = await pool.query("SELECT * FROM flashseat_data WHERE email = $1", [email])
 
         if (duplicateUser.rows.length > 0) {
-            return sendError(res, 409, "Account already exists. Please log in.")
+            return next(new AppError("Account already exists. Please log in.", 409))
         }
 
         // Generating a password hash
@@ -41,13 +42,13 @@ const userLogin = async (req, res, next) => {
         const {email, password} = req.body
 
         if (!email?.trim() || !password?.trim()) {
-            return sendError(res, 400, "All fields are required!")
+            return next(new AppError("All fields are required!", 400))
         }
 
         //Scenario: Does User Exists ?
         const User = await pool.query("SELECT * FROM flashseat_data WHERE email = $1", [email])
         if (User.rows.length === 0) {
-            return sendError(res, 401, "Invalid email or password")
+            return next(new AppError("Invalid email or password", 401))
         }
         else {
             const hash = User.rows[0].pass_hash
@@ -55,7 +56,7 @@ const userLogin = async (req, res, next) => {
             const compare = await bcrypt.compare(password, hash)
             
             if (!compare) {
-                return sendError(res, 401, "Invalid email or password")
+                return next(new AppError("Invalid email or password", 401))
             }
             const token = jwt.sign({id}, process.env.JWT_SECRET, {expiresIn: '2h'})
             sendSuccess(res, 200, {message: "Login Successfull!", token})

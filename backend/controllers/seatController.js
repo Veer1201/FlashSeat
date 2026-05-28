@@ -1,6 +1,7 @@
 const pool = require('../config/db');
 const { client: redisClient } = require('../config/redis');
-const { sendError, sendSuccess } = require('../utils/responseHelper');
+const { AppError } = require('../utils/AppError');
+const { sendSuccess } = require('../utils/responseHelper');
 
 // 1. The Logic for Booking (The "Zombie" logic goes here)
 const bookSeat = async (req, res, next) => {
@@ -9,7 +10,7 @@ const bookSeat = async (req, res, next) => {
         const userId = req.user.id
 
         if (!seatId) {
-            return sendError(res, 400, "Select a seat before proceeding")
+            return next(new AppError("Select a seat before proceeding", 400))
         }
 
         // The Actual Update Attempt
@@ -28,12 +29,12 @@ const bookSeat = async (req, res, next) => {
 
             // Seat does not exist
             if (currentSeat.rows.length === 0) {
-                return sendError(res, 404, "invalid seat ID")
+                return next(new AppError("Invalid seat ID", 404))
             }            
 
             const status = currentSeat.rows[0].status;
             if (status === 'sold') {
-                return sendError(res, 409, "Ticket sold already")
+                return next(new AppError("Ticket sold already", 409))
             }
             if (status === 'held') {
                 const holder = await redisClient.GET("seat_hold:" + seatId);
@@ -48,7 +49,7 @@ const bookSeat = async (req, res, next) => {
                     await redisClient.setEx("seat_hold:" + seatId, 30, userId.toString());
                     return sendSuccess(res, 200, {seatId, status: "available", message: "Recovered from expired hold"})
                 }
-                return sendError(res, 409, "Currently held by another user")
+                return next(new AppError("Currently held by another user", 409))
             }
         }
     } catch (err) {
@@ -63,17 +64,17 @@ const payForSeat = async (req, res, next) => {
         const userId = req.user.id
         
         if (!seatId) {
-            return sendError(res, 400, "Select a seat before proceeding")
+            return next(new AppError("Select a seat before proceeding", 400))
         }
 
         const holder = await redisClient.GET("seat_hold:" + seatId);
         if (!holder || holder !== userId.toString()) {
-            return sendError(res, 409, "Reservation Expired")
+            return next(new AppError("Reservation Expired", 409))
         }
 
         const updateSeat = await pool.query("UPDATE seats SET status = 'sold', user_id = $1 WHERE seat_id = $2 AND status = 'held'", [userId, seatId]);
         if (updateSeat.rowCount === 0) {
-            return sendError(res, 500, "Database Error: seat state mismatch")
+            return next(new AppError("Database Error: seat state mismatch", 500))
         }
 
         await redisClient.DEL("seat_hold:" + seatId);
