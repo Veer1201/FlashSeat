@@ -6,6 +6,7 @@ const pool = require('./config/db');
 const seatRoutes = require('./routes/seatRoutes');
 const userRoutes = require('./routes/userRoutes');
 const errorRoute = require('./middleware/errorHandler')
+const helmet = require('helmet')
 
 app.use(express.json()); //intercepts every request and 
 //checks if it containd JSON data and them parses into new JavaScript object req.body
@@ -15,6 +16,8 @@ const { sendSuccess } = require('./utils/responseHelper');
 connectRedis();
 
 const PORT = 3000;
+
+app.use(helmet())
 
 // When a user visits on the page
 // req = gets data from user
@@ -49,6 +52,7 @@ app.get('/events/:id/seats', async(req, res, next) => {
 
 // Tell Express to use them
 // This means any URL starting with /seats will go to seatRoutes
+
 app.use('/seats', seatRoutes);
 app.use('/user', userRoutes);
 app.use(errorRoute)
