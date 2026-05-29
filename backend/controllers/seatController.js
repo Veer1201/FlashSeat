@@ -23,7 +23,7 @@ const bookSeat = async (req, res, next) => {
         console.log("------------------------------------------------");
 
         if (result.rowCount === 1) {
-            await redisClient.setEx("seat_hold:" + seatId, 30, userId.toString());
+            await redisClient.setEx("seat_hold:" + seatId, 300, userId.toString());
             return sendSuccess(res, 200, {seatId, status: "held"})
         } else {
             const currentSeat = await pool.query("SELECT status from seats WHERE seat_id = $1 ", [seatId]);
