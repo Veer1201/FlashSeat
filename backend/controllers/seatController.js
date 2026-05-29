@@ -2,6 +2,7 @@ const pool = require('../config/db');
 const { client: redisClient } = require('../config/redis');
 const { AppError } = require('../utils/AppError');
 const { sendSuccess } = require('../utils/responseHelper');
+const stripe = require('stripe')(process.env.STRIPE_SECRET_KEY)
 
 // 1. The Logic for Booking (The "Zombie" logic goes here)
 const bookSeat = async (req, res, next) => {
@@ -86,4 +87,31 @@ const payForSeat = async (req, res, next) => {
     }
 };
 
-module.exports = { bookSeat, payForSeat };
+const createPaymentIntent = async (req, res, next) => {
+    try {
+        const {seatId} = req.body
+
+        if (!seatId) {
+            return next(new AppError("Invalid seatId", 400))
+        }
+        const price = await pool.query("SELECT price FROM seats WHERE seat_id = $1", [seatId])
+
+        if (price.rows.length === 0) {
+            return next(new AppError("Seat not found", 404))
+        }
+        const price_in_cents = (price.rows[0].price) * 100
+
+        const paymentIntent = await stripe.paymentIntents.create({
+            amount: price_in_cents,
+            currency: 'cad',
+            automatic_payment_methods: {enabled: true}
+        })
+
+        sendSuccess(res, 200, {clientSecret: paymentIntent.client_secret})
+    } catch (err) {
+        next(err)
+    }
+    
+}
+
+module.exports = { bookSeat, payForSeat, createPaymentIntent };
