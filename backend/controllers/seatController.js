@@ -61,7 +61,7 @@ const bookSeat = async (req, res, next) => {
 // 2. The Logic for Paying
 const payForSeat = async (req, res, next) => {
     try {
-        const {seatId} = req.body;
+        const {seatId, paymentIntentId} = req.body;
         const userId = req.user.id
         
         if (!seatId) {
@@ -72,10 +72,16 @@ const payForSeat = async (req, res, next) => {
         if (!holder || holder !== userId.toString()) {
             return next(new AppError("Reservation Expired", 409))
         }
-
-        const updateSeat = await pool.query("UPDATE seats SET status = 'sold', user_id = $1 WHERE seat_id = $2 AND status = 'held'", [userId, seatId]);
-        if (updateSeat.rowCount === 0) {
-            return next(new AppError("Database Error: seat state mismatch", 500))
+        
+        const paymentIntent = await stripe.paymentIntents.retrieve(paymentIntentId)
+        if (paymentIntent.status === "succeeded") {
+            const updateSeat = await pool.query("UPDATE seats SET status = 'sold', user_id = $1 WHERE seat_id = $2 AND status = 'held'", [userId, seatId]);
+            if (updateSeat.rowCount === 0) {
+                return next(new AppError("Database Error: seat state mismatch", 500))
+            }
+        }
+        else {
+            return next(new AppError("Payment Failed", 401))
         }
 
         await redisClient.DEL("seat_hold:" + seatId);
@@ -104,7 +110,9 @@ const createPaymentIntent = async (req, res, next) => {
         const paymentIntent = await stripe.paymentIntents.create({
             amount: price_in_cents,
             currency: 'cad',
-            automatic_payment_methods: {enabled: true}
+            automatic_payment_methods: {enabled: true,
+                allow_redirects: 'never'
+            }
         })
 
         sendSuccess(res, 200, {clientSecret: paymentIntent.client_secret})
