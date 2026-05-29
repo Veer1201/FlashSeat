@@ -11,11 +11,12 @@ describe('Booking Integration tests',  () => {
 
     beforeAll(async() => {
         await connectRedis()
+        await pool.query("DELETE FROM users WHERE email = 'testuser@test.com'")
         await pool.query("UPDATE seats SET status = 'available', user_id = NULL WHERE seat_id = 6")
     })
 
     afterAll(async() => {
-        await pool.query("DELETE FROM flashseat_data WHERE email = 'testuser@test.com'")
+        await pool.query("DELETE FROM users WHERE email = 'testuser@test.com'")
         await pool.query("UPDATE seats SET status = 'available', user_id = NULL WHERE seat_id = 6")
 
         await client.del('seat_hold:6')
@@ -37,7 +38,7 @@ describe('Booking Integration tests',  () => {
         const next = jest.fn()
         await registerUser(req, res, next)
 
-        const user = await pool.query("SELECT * FROM flashseat_data WHERE email = 'testuser@test.com'")
+        const user = await pool.query("SELECT * FROM users WHERE email = 'testuser@test.com'")
 
         expect(user.rows.length).toBe(1)
         userId = user.rows[0].id

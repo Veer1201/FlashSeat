@@ -15,7 +15,7 @@ const registerUser = async (req, res, next) => {
             return next(new AppError("All fields are required!", 400))
         }
         // Scenario: User Already Exists
-        const duplicateUser = await pool.query("SELECT * FROM flashseat_data WHERE email = $1", [email])
+        const duplicateUser = await pool.query("SELECT * FROM users WHERE email = $1", [email])
 
         if (duplicateUser.rows.length > 0) {
             return next(new AppError("Account already exists. Please log in.", 409))
@@ -24,7 +24,7 @@ const registerUser = async (req, res, next) => {
         // Generating a password hash
         const password_hash =  await bcrypt.hash(password, saltRounds)
         const newEntry = await pool.query(
-            "INSERT INTO flashseat_data (email, phone, pass_hash) VALUES ($1, $2, $3) RETURNING *",
+            "INSERT INTO users (email, phone, pass_hash) VALUES ($1, $2, $3) RETURNING *",
             [email, phone_number, password_hash]
         );
 
@@ -46,7 +46,7 @@ const userLogin = async (req, res, next) => {
         }
 
         //Scenario: Does User Exists ?
-        const User = await pool.query("SELECT * FROM flashseat_data WHERE email = $1", [email])
+        const User = await pool.query("SELECT * FROM users WHERE email = $1", [email])
         if (User.rows.length === 0) {
             return next(new AppError("Invalid email or password", 401))
         }
