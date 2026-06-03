@@ -1,7 +1,7 @@
 import { Link } from 'react-router-dom'
 
 function EventCard({ event, size = 'normal' }) {
-  const minPrice = Math.min(...event.tiers.map(t => t.price))
+  const minPrice = event.min_price ? parseFloat(event.min_price) : '?'
 
   if (size === 'trending') {
     return (

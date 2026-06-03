@@ -65,7 +65,13 @@ app.get('/events/:id/seats', async(req, res, next) => {
 
 app.get('/events', async (req, res, next) => {
     try {
-      const result = await pool.query("SELECT * FROM events ORDER BY id");
+      const result = await pool.query(`
+        SELECT e.*, MIN(s.price) as min_price 
+        FROM events e
+        LEFT JOIN seats s ON s.event_id = e.id
+        GROUP BY e.id
+        ORDER BY e.id
+      `)
       return sendSuccess(res, 200, result.rows)
     } catch (err) {
       next(err)
