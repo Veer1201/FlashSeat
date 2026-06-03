@@ -13,7 +13,7 @@ app.use(express.json()); //intercepts every request and
 //checks if it containd JSON data and them parses into new JavaScript object req.body
 
 app.use(cors({
-    origin: ['http://localhost:5173', 'https://your-frontend-domain.com'],
+    origin: ['http://localhost:5173', 'https://flash-seat.vercel.app'],
     credentials: true
   }))
 
