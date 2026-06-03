@@ -1,15 +1,23 @@
-import { useState, useRef } from 'react'
-import { EVENTS, CATEGORIES } from '../data/events'
+import { useState, useEffect, useRef } from 'react'
+import { fetchEvents, CATEGORIES } from '../data/events'
 import HeroCarousel from '../components/HeroCarousel'
 import EventCard from '../components/EventCard'
 
 function Landing() {
+  const [events, setEvents] = useState([])
   const [activeCategory, setActiveCategory] = useState('All Events')
+  const [loading, setLoading] = useState(true)
   const trendingRef = useRef(null)
 
+  useEffect(() => {
+    fetchEvents()
+      .then(data => setEvents(data))
+      .finally(() => setLoading(false))
+  }, [])
+
   const filtered = activeCategory === 'All Events'
-    ? EVENTS
-    : EVENTS.filter(e => e.category === activeCategory)
+    ? events
+    : events.filter(e => e.category === activeCategory)
 
   const scrollTrending = (direction) => {
     if (trendingRef.current) {
@@ -17,10 +25,20 @@ function Landing() {
     }
   }
 
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="text-center">
+          <div className="w-10 h-10 border-4 border-orange-500 border-t-transparent rounded-full animate-spin mx-auto mb-4" />
+          <p className="text-gray-500">Loading events...</p>
+        </div>
+      </div>
+    )
+  }
+
   return (
     <div>
-      {/* Hero Carousel */}
-      <HeroCarousel events={EVENTS} />
+      <HeroCarousel events={events} />
 
       {/* Trending Now */}
       <section className="max-w-7xl mx-auto px-6 py-12">
@@ -35,27 +53,12 @@ function Landing() {
             </div>
           </div>
           <div className="flex gap-2">
-            <button
-              onClick={() => scrollTrending(-1)}
-              className="w-10 h-10 rounded-full border border-gray-200 flex items-center justify-center text-gray-500 hover:bg-gray-50 transition-colors"
-            >
-              ‹
-            </button>
-            <button
-              onClick={() => scrollTrending(1)}
-              className="w-10 h-10 rounded-full border border-gray-200 flex items-center justify-center text-gray-500 hover:bg-gray-50 transition-colors"
-            >
-              ›
-            </button>
+            <button onClick={() => scrollTrending(-1)} className="w-10 h-10 rounded-full border border-gray-200 flex items-center justify-center text-gray-500 hover:bg-gray-50 transition-colors">‹</button>
+            <button onClick={() => scrollTrending(1)} className="w-10 h-10 rounded-full border border-gray-200 flex items-center justify-center text-gray-500 hover:bg-gray-50 transition-colors">›</button>
           </div>
         </div>
-
-        <div
-          ref={trendingRef}
-          className="flex gap-5 overflow-x-auto scrollbar-hide pb-2"
-          style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
-        >
-          {EVENTS.slice(0, 6).map(event => (
+        <div ref={trendingRef} className="flex gap-5 overflow-x-auto scrollbar-hide pb-2" style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}>
+          {events.slice(0, 6).map(event => (
             <EventCard key={event.id} event={event} size="trending" />
           ))}
         </div>
@@ -66,8 +69,6 @@ function Landing() {
         <div className="max-w-7xl mx-auto px-6">
           <h2 className="text-3xl font-black text-gray-900 mb-2">Browse Events</h2>
           <p className="text-gray-500 mb-8">Find your next unforgettable experience</p>
-
-          {/* Category Pills */}
           <div className="flex gap-3 mb-10 flex-wrap">
             {CATEGORIES.map(cat => (
               <button
@@ -83,18 +84,13 @@ function Landing() {
               </button>
             ))}
           </div>
-
-          {/* Event Grid */}
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
             {filtered.map(event => (
               <EventCard key={event.id} event={event} />
             ))}
           </div>
-
           {filtered.length === 0 && (
-            <div className="text-center py-16 text-gray-400">
-              No events found in this category.
-            </div>
+            <div className="text-center py-16 text-gray-400">No events found in this category.</div>
           )}
         </div>
       </section>
