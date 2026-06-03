@@ -53,6 +53,40 @@ app.get('/events/:id/seats', async(req, res, next) => {
     }
 })
 
+app.get('/events/:id/seats', async(req, res, next) => {
+    try {
+        const eventId = req.params.id
+        const result = await pool.query("SELECT * FROM seats WHERE event_id = $1 ORDER BY(row_number, seat_number)", [eventId])
+        return sendSuccess(res, 200, result.rows)
+    } catch (error) {
+        next(error)
+    }
+})
+
+app.get('/events', async (req, res, next) => {
+    try {
+      const result = await pool.query("SELECT * FROM events ORDER BY id");
+      return sendSuccess(res, 200, result.rows)
+    } catch (err) {
+      next(err)
+    }
+  })
+  
+
+app.get('/events/:id', async (req, res, next) => {
+    try {
+      const eventId = req.params.id;
+      const result = await pool.query("SELECT * FROM events WHERE id = $1", [eventId]);
+      if (result.rows.length === 0) {
+        return next(new AppError("Event not found", 404))
+      }
+      return sendSuccess(res, 200, result.rows[0])
+    } catch (err) {
+      next(err)
+    }
+  })
+  
+
 // Import the routes
 
 
