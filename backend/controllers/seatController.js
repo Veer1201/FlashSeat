@@ -3,6 +3,7 @@ const { client: redisClient } = require('../config/redis');
 const { AppError } = require('../utils/AppError');
 const { sendSuccess } = require('../utils/responseHelper');
 const stripe = require('stripe')(process.env.STRIPE_SECRET_KEY)
+const { getIO } = require('../config/socket');
 
 // 1. The Logic for Booking (The "Zombie" logic goes here)
 const bookSeat = async (req, res, next) => {
@@ -24,6 +25,7 @@ const bookSeat = async (req, res, next) => {
 
         if (result.rowCount === 1) {
             await redisClient.setEx("seat_hold:" + seatId, 300, userId.toString());
+            getIO().emit('seat:held', {"seatId": seatId, "status": "held" })
             return sendSuccess(res, 200, {seatId, status: "held"})
         } else {
             const currentSeat = await pool.query("SELECT status from seats WHERE seat_id = $1 ", [seatId]);
@@ -47,7 +49,7 @@ const bookSeat = async (req, res, next) => {
                     await pool.query("UPDATE seats SET user_id = $1 WHERE seat_id = $2 AND status = 'held'", [userId, seatId]);
 
                     // reset timer for new user
-                    await redisClient.setEx("seat_hold:" + seatId, 30, userId.toString());
+                    await redisClient.setEx("seat_hold:" + seatId, 300, userId.toString());
                     return sendSuccess(res, 200, {seatId, status: "available", message: "Recovered from expired hold"})
                 }
                 return next(new AppError("Currently held by another user", 409))
@@ -85,7 +87,7 @@ const payForSeat = async (req, res, next) => {
         }
 
         await redisClient.DEL("seat_hold:" + seatId);
-
+        getIO().emit('seat:sold', {"seatId": seatId, "status": "sold" })
         return sendSuccess(res, 200, {User: userId, Seat: seatId, status: "sold", message: "Payment Successful! Ticket is yours"})
     }
     catch (err){

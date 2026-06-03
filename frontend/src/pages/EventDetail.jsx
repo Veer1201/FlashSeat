@@ -3,6 +3,7 @@ import { useParams, Link, useNavigate } from 'react-router-dom'
 import { fetchEvent, fetchEventSeats } from '../data/events'
 import SeatMap from '../components/SeatMap'
 import CheckoutPanel from '../components/CheckoutPanel'
+import { io } from 'socket.io-client'
 
 function EventDetail({ token }) {
   const { id } = useParams()
@@ -21,6 +22,30 @@ function EventDetail({ token }) {
       })
       .finally(() => setLoading(false))
   }, [id])
+
+  useEffect(() => {
+    const socket = io(import.meta.env.VITE_API_URL)
+
+    socket.on('seat:held', ({ seatId, status }) => {
+        setSeats(prev => prev.map(s => 
+            s.seat_id === seatId ? { ...s, status } : s
+        ))
+    })
+
+    socket.on('seat:sold', ({ seatId, status }) => {
+        setSeats(prev => prev.map(s => 
+            s.seat_id === seatId ? { ...s, status } : s
+        ))
+    })
+
+    socket.on('seat:available', ({ seatId, status }) => {
+        setSeats(prev => prev.map(s => 
+            s.seat_id === seatId ? { ...s, status } : s
+        ))
+    })
+
+    return () => socket.disconnect()
+  }, [])
 
   if (loading) {
     return (

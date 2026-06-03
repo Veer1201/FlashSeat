@@ -1,5 +1,6 @@
 const redis = require('redis');
 const pool = require('./db');
+const { getIO } = require('./socket');
 
 const client = redis.createClient({
     url: process.env.REDIS_URL
@@ -22,6 +23,7 @@ async function connectRedis() {
         }
         const seatId = key.split(':')[1]
         await pool.query("UPDATE seats SET status = 'available' WHERE seat_id = $1", [seatId])
+        getIO().emit('seat:available', {"seatId": seatId, "status": "available"})
         console.log("Released a zombie seat:", {seatId})
     })
 
