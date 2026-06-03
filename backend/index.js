@@ -7,9 +7,15 @@ const seatRoutes = require('./routes/seatRoutes');
 const userRoutes = require('./routes/userRoutes');
 const errorRoute = require('./middleware/errorHandler')
 const helmet = require('helmet')
+const cors = require('cors')
 
 app.use(express.json()); //intercepts every request and 
 //checks if it containd JSON data and them parses into new JavaScript object req.body
+
+app.use(cors({
+    origin: ['http://localhost:5173', 'https://your-frontend-domain.com'],
+    credentials: true
+  }))
 
 const {client: redisClient, connectRedis} = require('./config/redis');
 const { sendSuccess } = require('./utils/responseHelper');
