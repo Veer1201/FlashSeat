@@ -4,6 +4,7 @@ const { AppError } = require('../utils/AppError');
 const { sendSuccess } = require('../utils/responseHelper');
 const stripe = require('stripe')(process.env.STRIPE_SECRET_KEY)
 const { getIO } = require('../config/socket');
+const {sendConfirmationEmail} = require('../utils/sendEmail')
 
 // 1. The Logic for Booking (The "Zombie" logic goes here)
 const bookSeat = async (req, res, next) => {
@@ -85,6 +86,17 @@ const payForSeat = async (req, res, next) => {
         else {
             return next(new AppError("Payment Failed", 401))
         }
+
+        const Data = await pool.query("SELECT s.seat_number, s.row_number, e.name, e.date, e.time, e.city, u.email FROM seats s JOIN events e ON e.id = s.event_id JOIN users u ON u.id = $2 WHERE s.seat_id = $1", [seatId, userId])
+        const toEmail = Data.rows[0].email
+        const seat_number = Data.rows[0].seat_number
+        const row_number = Data.rows[0].row_number
+        const eventName = Data.rows[0].name
+        const eventDate = Data.rows[0].date
+        const eventTime = Data.rows[0].time
+        const eventCity = Data.rows[0].city
+
+        await sendConfirmationEmail(toEmail, {row_number, seat_number, eventName, eventDate, eventTime, eventCity, confirmationId: paymentIntentId})
 
         await redisClient.DEL("seat_hold:" + seatId);
         getIO().emit('seat:sold', {"seatId": seatId, "status": "sold" })
