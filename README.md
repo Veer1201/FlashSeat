@@ -20,7 +20,7 @@ FlashSeat lets users browse events, select seats, and complete purchases via Str
 - Redis (Upstash) — 5-minute seat holds with TTL-based expiry
 - Socket.io — real-time seat status broadcasting
 - Stripe — payment intent creation and verification
-- Resend — booking confirmation emails
+- Brevo — booking confirmation emails
 - JWT + bcrypt — authentication and password hashing
 - Winston — structured logging
 - Helmet, express-rate-limit, express-validator — security hardening
@@ -80,7 +80,8 @@ DATABASE_URL=your_supabase_connection_string
 REDIS_URL=your_upstash_redis_url
 JWT_SECRET=your_jwt_secret
 STRIPE_SECRET_KEY=your_stripe_secret_key
-RESEND_API_KEY=your_resend_api_key
+BREVO_SMTP_LOGIN=your_smtp_login
+BREVO_SMTP_PASSWORD=your_brevo_smtp_password
 PORT=3000
 ```
 
