@@ -96,7 +96,8 @@ const payForSeat = async (req, res, next) => {
         const eventTime = Data.rows[0].time
         const eventCity = Data.rows[0].city
 
-        await sendConfirmationEmail(toEmail, {row_number, seat_number, eventName, eventDate, eventTime, eventCity, confirmationId: paymentIntentId})
+        sendConfirmationEmail(toEmail, {row_number, seat_number, eventName, eventDate, eventTime, eventCity, confirmationId: paymentIntentId})
+        .catch(err => console.error("Email failed to send:", err.message))
 
         await redisClient.DEL("seat_hold:" + seatId);
         getIO().emit('seat:sold', {"seatId": seatId, "status": "sold" })
